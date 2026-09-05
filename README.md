@@ -14,7 +14,7 @@ Electron + React (React Flow canvas) on the front, Python + nmap on the back.
 | 1 | `python/scan.py` — nmap discovery, JSON on stdout | ✅ |
 | 2 | Electron + React shell, static topology canvas | ✅ |
 | 3 | Scan button wired end to end | ✅ |
-| 4 | Save / load `.nettrace`, auto-load last map | ⬜ |
+| 4 | Save / load `.nettrace`, auto-load last map | ✅ |
 | 5 | Rescan + diff (offline marking, layout preserved) | ⬜ |
 | 6 | Traceroute overlay | ⬜ |
 
@@ -42,10 +42,11 @@ Starts Vite with hot reload and opens the Electron window against it. For a
 production-style run instead: `npm start` (builds to `dist/`, then launches
 Electron off the built files).
 
-The app opens on the sample map in
+The app reopens whatever map you last saved or opened. First run — or if that
+file has since been moved — it falls back to the sample map in
 [`saved-maps/sample.nettrace`](saved-maps/sample.nettrace) so there's
 something to look at; hit **Scan** to replace it with your real network.
-Save / Load / Rescan stay disabled until their milestones land.
+Rescan stays disabled until milestone 5.
 
 **Quick scan** (on by default) runs the ping sweep only — seconds instead of
 minutes. Untick it for full OS and service fingerprinting.
@@ -74,6 +75,22 @@ Flags:
 - `--subnet 192.168.1.0/24` — scan a specific CIDR instead of auto-detecting
 - `--discover-only` — ping sweep only, skip per-device fingerprinting (fast)
 
+## Saving and loading
+
+| Action | Shortcut | Behaviour |
+| --- | --- | --- |
+| Save | `⌘S` | Writes to the current file. Prompts for a location the first time. |
+| Save a copy | `⇧⌘S` | Always prompts. |
+| Load | `⌘O` | Opens a `.nettrace` (or `.json`) file. |
+
+The toolbar shows the current filename with a `•` when there are unsaved
+changes — dragging a node counts, since your layout is part of the map.
+
+Files are pretty-printed JSON so they stay readable and diffable. The path of
+the last file you saved or opened is remembered in `electron-store` and
+reopened on launch; if it's gone by then, nTracer quietly forgets it rather
+than complaining.
+
 ## How the pieces talk
 
 The renderer is fully sandboxed — no Node, no filesystem. Everything
@@ -87,6 +104,12 @@ React (Scan button)
   ← one JSON object on stdout
   ← { ok: true, map } | { ok: false, error }
 ```
+
+Save and load work the same way (`map:save`, `map:load`, `map:load-last` in
+[`electron/mapFiles.js`](electron/mapFiles.js)), with native dialogs owned by
+the main process. If the preload script ever fails to load, the renderer falls
+back to a stub bridge and says so in a banner, rather than showing a blank
+window.
 
 Failures cross the bridge as data, never as exceptions, so the renderer only
 ever has two cases to handle. `scan.py` reports its own errors as JSON too, so

@@ -11,6 +11,7 @@ const path = require('node:path');
 const { app, BrowserWindow, ipcMain } = require('electron');
 
 const { runScan } = require('./scanner');
+const { saveMap, loadMap, loadLastMap } = require('./mapFiles');
 
 // `npm run dev` sets this; a packaged build never does.
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
@@ -52,6 +53,17 @@ function registerIpcHandlers() {
       return { ok: false, error: err.message };
     }
   });
+
+  // File dialogs are parented to the window that asked, so they open as
+  // sheets on macOS rather than as detached windows.
+  const windowFor = (event) => BrowserWindow.fromWebContents(event.sender);
+
+  ipcMain.handle('map:save', (event, { map, path: currentPath, saveAs }) =>
+    saveMap(windowFor(event), map, currentPath, saveAs));
+
+  ipcMain.handle('map:load', (event) => loadMap(windowFor(event)));
+
+  ipcMain.handle('map:load-last', (event) => loadLastMap(windowFor(event)));
 }
 
 app.whenReady().then(() => {

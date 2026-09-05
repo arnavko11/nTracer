@@ -254,3 +254,18 @@ body {
 .banner-close:hover {
   opacity: 1;
 }
+
+/* ------------------------------------------------------ file name / dirty */
+
+.file-name {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.dirty-dot {
+  margin-left: 4px;
+  color: var(--warn);
+}

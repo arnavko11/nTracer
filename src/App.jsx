@@ -2,8 +2,9 @@
  * Root component. Holds the one authoritative copy of the current .nettrace
  * map; every other component reads from it and reports changes back up.
  *
- * Starts on a hardcoded sample map so there's something to look at before the
- * first scan. Milestone 4 replaces that with the last file the user opened.
+ * On launch it reopens the last map you saved or opened, so the app comes up
+ * showing your network rather than an empty canvas. Failing that, it falls
+ * back to the bundled sample map.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -12,6 +13,7 @@ import Toolbar from './components/Toolbar';
 import StatusBanner from './components/StatusBanner';
 import TopologyCanvas from './components/TopologyCanvas';
 import { applyPositions, buildMapFromScan } from './lib/graph';
+import { bridge, bridgeAvailable } from './lib/bridge';
 import './styles/app.css';
 
 // The sample map is committed as a real .nettrace file so it doubles as
@@ -22,23 +24,50 @@ const SAMPLE_MAP = JSON.parse(sampleMapRaw);
 
 export default function App() {
   const [map, setMap] = useState(SAMPLE_MAP);
+  const [filePath, setFilePath] = useState(null);
+  const [dirty, setDirty] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [quickScan, setQuickScan] = useState(true);
-  const [notice, setNotice] = useState(null);   // { tone, text }
+  const [notice, setNotice] = useState(
+    bridgeAvailable ? null : {
+      tone: 'error',
+      text: 'The desktop bridge isn\'t available, so scanning and saving are '
+        + 'disabled. This usually means nTracer was opened outside Electron, '
+        + 'or that electron/preload.js failed to load.',
+    },
+  );
 
   useScanClock(scanning, setElapsed);
+
+  /** Swap in a whole new map — from a scan, a load, or the auto-load. */
+  const adoptMap = useCallback((nextMap, path, isDirty) => {
+    setMap(nextMap);
+    setFilePath(path);
+    setDirty(isDirty);
+  }, []);
+
+  // Reopen the last map on launch. Nothing stored (or the file has since been
+  // moved) just leaves the sample map in place — not worth a warning.
+  useEffect(() => {
+    let cancelled = false;
+    bridge.loadLastMap().then((result) => {
+      if (!cancelled && result.ok) adoptMap(result.map, result.path, false);
+    });
+    return () => { cancelled = true; };
+  }, [adoptMap]);
 
   // Persist dragged node positions into the map so a later save keeps them.
   const handlePositionsChange = useCallback((nodes) => {
     setMap((current) => applyPositions(current, nodes));
+    setDirty(true);
   }, []);
 
   const handleScan = useCallback(async () => {
     setScanning(true);
     setNotice(null);
 
-    const result = await window.ntracer.scan({ discoverOnly: quickScan });
+    const result = await bridge.scan({ discoverOnly: quickScan });
     setScanning(false);
 
     if (!result.ok) {
@@ -46,19 +75,51 @@ export default function App() {
       return;
     }
 
-    setMap(buildMapFromScan(result.map));
+    // A fresh scan is unsaved work, but it keeps the current file as its
+    // destination so Save doesn't re-prompt.
+    adoptMap(buildMapFromScan(result.map), filePath, true);
     setNotice(unprivilegedWarning(result.map));
-  }, [quickScan]);
+  }, [quickScan, filePath, adoptMap]);
+
+  const handleSave = useCallback(async (saveAs = false) => {
+    const result = await bridge.saveMap(map, filePath, saveAs);
+    if (result.cancelled) return;
+
+    if (!result.ok) {
+      setNotice({ tone: 'error', text: result.error });
+      return;
+    }
+    setFilePath(result.path);
+    setDirty(false);
+  }, [map, filePath]);
+
+  const handleLoad = useCallback(async () => {
+    const result = await bridge.loadMap();
+    if (result.cancelled) return;
+
+    if (!result.ok) {
+      setNotice({ tone: 'error', text: result.error });
+      return;
+    }
+    adoptMap(result.map, result.path, false);
+    setNotice(null);
+  }, [adoptMap]);
+
+  useShortcuts({ onSave: handleSave, onLoad: handleLoad });
 
   return (
     <div className="app">
       <Toolbar
         map={map}
+        filePath={filePath}
+        dirty={dirty}
         scanning={scanning}
         elapsed={elapsed}
         quickScan={quickScan}
         onQuickScanChange={setQuickScan}
         onScan={handleScan}
+        onSave={handleSave}
+        onLoad={handleLoad}
       />
 
       <StatusBanner tone={notice?.tone} onDismiss={() => setNotice(null)}>
@@ -103,4 +164,25 @@ function useScanClock(scanning, setElapsed) {
     );
     return () => clearInterval(id);
   }, [scanning, setElapsed]);
+}
+
+/** Cmd/Ctrl+S to save, Cmd/Ctrl+Shift+S to save as, Cmd/Ctrl+O to open. */
+function useShortcuts({ onSave, onLoad }) {
+  useEffect(() => {
+    const handler = (event) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+
+      const key = event.key.toLowerCase();
+      if (key === 's') {
+        event.preventDefault();
+        onSave(event.shiftKey);
+      } else if (key === 'o') {
+        event.preventDefault();
+        onLoad();
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onSave, onLoad]);
 }

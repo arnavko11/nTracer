@@ -1,18 +1,21 @@
 /**
  * Top bar: app identity, the map-level actions, and a summary of the map.
  *
- * Save/Load land in milestone 4 and Rescan in milestone 5; those buttons stay
- * visibly disabled until then so the layout doesn't shift when they come
- * alive.
+ * Rescan lands in milestone 5; that button stays visibly disabled until then
+ * so the layout doesn't shift when it comes alive.
  */
 
 export default function Toolbar({
   map,
+  filePath,
+  dirty,
   scanning,
   elapsed,
   quickScan,
   onQuickScanChange,
   onScan,
+  onSave,
+  onLoad,
 }) {
   const deviceCount = map.devices.length;
   const offlineCount = map.devices.filter((d) => d.status === 'offline').length;
@@ -28,8 +31,16 @@ export default function Toolbar({
           {scanning ? `Scanning… ${formatElapsed(elapsed)}` : 'Scan'}
         </button>
         <button type="button" disabled title="Coming in milestone 5">Rescan</button>
-        <button type="button" disabled title="Coming in milestone 4">Save</button>
-        <button type="button" disabled title="Coming in milestone 4">Load</button>
+        <button
+          type="button"
+          onClick={() => onSave(false)}
+          title="Save (⌘S) — ⇧⌘S to save a copy elsewhere"
+        >
+          Save
+        </button>
+        <button type="button" onClick={onLoad} title="Open a .nettrace map (⌘O)">
+          Load
+        </button>
 
         <label
           className="toolbar-toggle"
@@ -46,6 +57,10 @@ export default function Toolbar({
       </div>
 
       <div className="toolbar-status">
+        <span className="file-name" title={filePath ?? 'Not saved to a file yet'}>
+          {filePath ? basename(filePath) : 'unsaved'}
+          {dirty && <span className="dirty-dot" title="Unsaved changes">•</span>}
+        </span>
         <span>{map.subnet ?? 'no subnet'}</span>
         <span>
           {deviceCount} device{deviceCount === 1 ? '' : 's'}
@@ -55,6 +70,11 @@ export default function Toolbar({
       </div>
     </header>
   );
+}
+
+/** Last path segment, without pulling Node's path module into the renderer. */
+function basename(filePath) {
+  return filePath.split(/[\\/]/).pop();
 }
 
 /** Seconds → "1:04", so a long scan visibly makes progress. */
