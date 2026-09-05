@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Real user maps — only sample/example maps are committed
+saved-maps/*.nettrace
+!saved-maps/sample.nettrace

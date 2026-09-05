@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "subnet": "192.168.1.0/24",
+  "privileged": true,
+  "router": {
+    "id": "router",
+    "ip": "192.168.1.1",
+    "mac": "F8:BB:BF:00:00:01",
+    "vendor": "eero",
+    "os_guess": "Router",
+    "open_ports": [53, 80],
+    "scan_profile": "none",
+    "status": "online",
+    "position": { "x": 400, "y": 60 },
+    "label": "eero",
+    "icon": "router",
+    "notes": "",
+    "first_seen": "2026-09-05T10:00:00Z",
+    "last_seen": "2026-09-05T10:00:00Z"
+  },
+  "devices": [
+    {
+      "id": "AC:DE:48:00:11:22",
+      "ip": "192.168.1.42",
+      "mac": "AC:DE:48:00:11:22",
+      "vendor": "Espressif",
+      "os_guess": "Embedded/IoT",
+      "open_ports": [80],
+      "scan_profile": "light",
+      "status": "online",
+      "position": { "x": 160, "y": 320 },
+      "label": "Kitchen Smart Plug",
+      "icon": "iot",
+      "notes": "",
+      "first_seen": "2026-09-05T10:00:00Z",
+      "last_seen": "2026-09-05T10:00:00Z"
+    },
+    {
+      "id": "3C:22:FB:AA:BB:CC",
+      "ip": "192.168.1.17",
+      "mac": "3C:22:FB:AA:BB:CC",
+      "vendor": "Apple",
+      "os_guess": "macOS",
+      "open_ports": [22, 5000],
+      "scan_profile": "full",
+      "status": "online",
+      "position": { "x": 400, "y": 320 },
+      "label": "MacBook Pro",
+      "icon": "computer",
+      "notes": "",
+      "first_seen": "2026-09-05T10:00:00Z",
+      "last_seen": "2026-09-05T10:00:00Z"
+    },
+    {
+      "id": "B0:4E:26:12:34:56",
+      "ip": "192.168.1.88",
+      "mac": "B0:4E:26:12:34:56",
+      "vendor": "TP-Link",
+      "os_guess": "Embedded/IoT",
+      "open_ports": [80, 443],
+      "scan_profile": "light",
+      "status": "offline",
+      "position": { "x": 640, "y": 320 },
+      "label": "Hallway Camera",
+      "icon": "iot",
+      "notes": "unplugged for now",
+      "first_seen": "2026-09-05T10:00:00Z",
+      "last_seen": "2026-09-05T10:00:00Z"
+    }
+  ],
+  "edges": [
+    { "source": "router", "target": "AC:DE:48:00:11:22" },
+    { "source": "router", "target": "3C:22:FB:AA:BB:CC" },
+    { "source": "router", "target": "B0:4E:26:12:34:56" }
+  ],
+  "last_scan": "2026-09-05T10:00:00Z"
+}
