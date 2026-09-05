@@ -13,7 +13,8 @@ import Toolbar from './components/Toolbar';
 import StatusBanner from './components/StatusBanner';
 import TopologyCanvas from './components/TopologyCanvas';
 import { applyPositions, buildMapFromScan } from './lib/graph';
-import { bridge, bridgeAvailable } from './lib/bridge';
+import { mergeScan, describeSummary } from './lib/diff';
+import { bridge, bridgeAvailable, BRIDGE_UNAVAILABLE } from './lib/bridge';
 import './styles/app.css';
 
 // The sample map is committed as a real .nettrace file so it doubles as
@@ -21,6 +22,7 @@ import './styles/app.css';
 import sampleMapRaw from '../saved-maps/sample.nettrace?raw';
 
 const SAMPLE_MAP = JSON.parse(sampleMapRaw);
+const EMPTY_SET = new Set();
 
 export default function App() {
   const [map, setMap] = useState(SAMPLE_MAP);
@@ -29,13 +31,10 @@ export default function App() {
   const [scanning, setScanning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [quickScan, setQuickScan] = useState(true);
+  // Ids a rescan just discovered — badged on the canvas until the next action.
+  const [newIds, setNewIds] = useState(EMPTY_SET);
   const [notice, setNotice] = useState(
-    bridgeAvailable ? null : {
-      tone: 'error',
-      text: 'The desktop bridge isn\'t available, so scanning and saving are '
-        + 'disabled. This usually means nTracer was opened outside Electron, '
-        + 'or that electron/preload.js failed to load.',
-    },
+    bridgeAvailable ? null : { tone: 'error', text: BRIDGE_UNAVAILABLE },
   );
 
   useScanClock(scanning, setElapsed);
@@ -45,7 +44,26 @@ export default function App() {
     setMap(nextMap);
     setFilePath(path);
     setDirty(isDirty);
+    setNewIds(EMPTY_SET);
   }, []);
+
+  /**
+   * Shared plumbing for Scan and Rescan: run scan.py, report failures, and
+   * hand the result to `onResult`.
+   */
+  const withScan = useCallback(async (onResult) => {
+    setScanning(true);
+    setNotice(null);
+
+    const result = await bridge.scan({ discoverOnly: quickScan });
+    setScanning(false);
+
+    if (!result.ok) {
+      setNotice({ tone: 'error', text: result.error });
+      return;
+    }
+    onResult(result.map);
+  }, [quickScan]);
 
   // Reopen the last map on launch. Nothing stored (or the file has since been
   // moved) just leaves the sample map in place — not worth a warning.
@@ -63,23 +81,30 @@ export default function App() {
     setDirty(true);
   }, []);
 
-  const handleScan = useCallback(async () => {
-    setScanning(true);
-    setNotice(null);
-
-    const result = await bridge.scan({ discoverOnly: quickScan });
-    setScanning(false);
-
-    if (!result.ok) {
-      setNotice({ tone: 'error', text: result.error });
-      return;
-    }
-
+  /** Scan from scratch: whatever's on the canvas is replaced. */
+  const handleScan = useCallback(() => withScan((scan) => {
     // A fresh scan is unsaved work, but it keeps the current file as its
     // destination so Save doesn't re-prompt.
-    adoptMap(buildMapFromScan(result.map), filePath, true);
-    setNotice(unprivilegedWarning(result.map));
-  }, [quickScan, filePath, adoptMap]);
+    adoptMap(buildMapFromScan(scan), filePath, true);
+    setNotice(unprivilegedWarning(scan));
+  }), [withScan, filePath, adoptMap]);
+
+  /**
+   * Rescan: merge into the existing map instead of replacing it, so layout,
+   * labels and notes survive and departed devices go offline rather than
+   * vanishing.
+   */
+  const handleRescan = useCallback(() => withScan((scan) => {
+    const { map: merged, newIds: found, summary } = mergeScan(map, scan);
+
+    setMap(merged);
+    setDirty(true);
+    setNewIds(found);
+    setNotice(
+      unprivilegedWarning(scan)
+      ?? { tone: 'info', text: `Rescan: ${describeSummary(summary)}` },
+    );
+  }), [withScan, map]);
 
   const handleSave = useCallback(async (saveAs = false) => {
     const result = await bridge.saveMap(map, filePath, saveAs);
@@ -118,6 +143,7 @@ export default function App() {
         quickScan={quickScan}
         onQuickScanChange={setQuickScan}
         onScan={handleScan}
+        onRescan={handleRescan}
         onSave={handleSave}
         onLoad={handleLoad}
       />
@@ -127,7 +153,11 @@ export default function App() {
       </StatusBanner>
 
       <main className="canvas-area">
-        <TopologyCanvas map={map} onPositionsChange={handlePositionsChange} />
+        <TopologyCanvas
+          map={map}
+          newIds={newIds}
+          onPositionsChange={handlePositionsChange}
+        />
       </main>
     </div>
   );

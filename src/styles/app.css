@@ -269,3 +269,15 @@ body {
   margin-left: 4px;
   color: var(--warn);
 }
+
+/* ------------------------------------------------ devices found by rescan */
+
+.device-node.is-new {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.tag-new {
+  background: #17304f;
+  color: #7fb0ff;
+}

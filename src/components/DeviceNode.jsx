@@ -21,7 +21,10 @@ export default function DeviceNode({ data }) {
   const offline = data.status === 'offline';
 
   return (
-    <div className={`device-node ${isRouter ? 'is-router' : ''} ${offline ? 'is-offline' : ''}`}>
+    <div
+      className={`device-node ${isRouter ? 'is-router' : ''} `
+        + `${offline ? 'is-offline' : ''} ${data.isNew ? 'is-new' : ''}`}
+    >
       {/* The router only sends edges downward; devices only receive them. */}
       {!isRouter && <Handle type="target" position={Position.Top} />}
 
@@ -41,6 +44,9 @@ export default function DeviceNode({ data }) {
             </span>
           )}
           {offline && <span className="tag tag-offline">offline</span>}
+          {data.isNew && (
+            <span className="tag tag-new" title="Found by the last rescan">new</span>
+          )}
         </div>
 
         {data.open_ports?.length > 0 && (

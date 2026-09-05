@@ -1,8 +1,5 @@
 /**
  * Top bar: app identity, the map-level actions, and a summary of the map.
- *
- * Rescan lands in milestone 5; that button stays visibly disabled until then
- * so the layout doesn't shift when it comes alive.
  */
 
 export default function Toolbar({
@@ -14,6 +11,7 @@ export default function Toolbar({
   quickScan,
   onQuickScanChange,
   onScan,
+  onRescan,
   onSave,
   onLoad,
 }) {
@@ -30,7 +28,14 @@ export default function Toolbar({
         <button type="button" onClick={onScan} disabled={scanning}>
           {scanning ? `Scanning… ${formatElapsed(elapsed)}` : 'Scan'}
         </button>
-        <button type="button" disabled title="Coming in milestone 5">Rescan</button>
+        <button
+          type="button"
+          onClick={onRescan}
+          disabled={scanning}
+          title="Scan again and merge into this map — keeps your layout, marks missing devices offline"
+        >
+          Rescan
+        </button>
         <button
           type="button"
           onClick={() => onSave(false)}

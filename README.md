@@ -15,7 +15,7 @@ Electron + React (React Flow canvas) on the front, Python + nmap on the back.
 | 2 | Electron + React shell, static topology canvas | ✅ |
 | 3 | Scan button wired end to end | ✅ |
 | 4 | Save / load `.nettrace`, auto-load last map | ✅ |
-| 5 | Rescan + diff (offline marking, layout preserved) | ⬜ |
+| 5 | Rescan + diff (offline marking, layout preserved) | ✅ |
 | 6 | Traceroute overlay | ⬜ |
 
 ## Requirements
@@ -46,7 +46,6 @@ The app reopens whatever map you last saved or opened. First run — or if that
 file has since been moved — it falls back to the sample map in
 [`saved-maps/sample.nettrace`](saved-maps/sample.nettrace) so there's
 something to look at; hit **Scan** to replace it with your real network.
-Rescan stays disabled until milestone 5.
 
 **Quick scan** (on by default) runs the ping sweep only — seconds instead of
 minutes. Untick it for full OS and service fingerprinting.
@@ -74,6 +73,29 @@ Flags:
 
 - `--subnet 192.168.1.0/24` — scan a specific CIDR instead of auto-detecting
 - `--discover-only` — ping sweep only, skip per-device fingerprinting (fast)
+
+## Scan vs. Rescan
+
+**Scan** builds a map from scratch — whatever's on the canvas is replaced.
+
+**Rescan** merges a fresh scan into the map you already have, matching devices
+by `id` (MAC address):
+
+| | What happens |
+| --- | --- |
+| Device still there | Refreshed with new scan data. Your `position`, `label` and `notes` are left alone, and `first_seen` is preserved. |
+| Device gone | Marked `offline` — dimmed, with a dashed link. Never deleted, so an unplugged device keeps its place. |
+| Device new | Added with a `new` badge, in a tray row below the existing layout so it can't land on top of nodes you've arranged. |
+
+A summary lands in the banner: *"Rescan: 1 new · 1 went offline · 1 back
+online · 1 still up"*.
+
+One caveat, and it's the reason to run with sudo: an unprivileged scan has no
+MAC addresses, so devices are identified by IP instead. A device that picks up
+a new DHCP lease between rescans then looks like a brand new device. The merge
+can't fix that — only root can.
+
+The merge logic lives in [`src/lib/diff.js`](src/lib/diff.js).
 
 ## Saving and loading
 

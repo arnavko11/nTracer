@@ -8,6 +8,8 @@
 
 import { applyStarLayout, starEdges } from './layout';
 
+const EMPTY_SET = new Set();
+
 /**
  * Turn a raw scan result into a complete .nettrace map: lay the nodes out in
  * a star and materialise the router→device edges, so the result is ready to
@@ -18,8 +20,14 @@ export function buildMapFromScan(scan) {
   return { ...laid, edges: starEdges(laid) };
 }
 
-/** Build React Flow nodes + edges from a .nettrace map object. */
-export function mapToFlow(map) {
+/**
+ * Build React Flow nodes + edges from a .nettrace map object.
+ *
+ * `newIds` marks devices a rescan just discovered. It's deliberately transient
+ * state held by App rather than a field on the device, since "new" is only
+ * meaningful until you've looked at it.
+ */
+export function mapToFlow(map, newIds = EMPTY_SET) {
   const laid = applyStarLayout(map);
   const devices = laid.router ? [laid.router, ...laid.devices] : laid.devices;
 
@@ -29,7 +37,7 @@ export function mapToFlow(map) {
     position: device.position,
     // The whole device object rides along so DeviceNode can render every
     // field without a second lookup.
-    data: device,
+    data: { ...device, isNew: newIds.has(device.id) },
   }));
 
   const edges = (laid.edges?.length ? laid.edges : starEdges(laid)).map((edge) => ({

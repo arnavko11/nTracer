@@ -81,3 +81,58 @@ export function starEdges(map) {
     target: device.id,
   }));
 }
+
+/**
+ * Geometry of the "tray": the row where devices found by a rescan land.
+ *
+ * New devices can't just be dropped into the grid — the grid positions by
+ * index, which would put them on top of nodes the user has already arranged.
+ * Instead they go in a fresh row below everything else, where they're
+ * obviously new and can be dragged into place.
+ */
+const TRAY = {
+  gapBelow: 200,      // clearance under the lowest existing node
+  columnWidth: 230,
+  rowHeight: 150,
+  perRow: 6,
+};
+
+/**
+ * Give every device in `newIds` a position in a row below the existing map.
+ * Nodes that aren't new are returned untouched.
+ *
+ * @param {object} map      the merged map
+ * @param {Set<string>} newIds  ids of devices this rescan discovered
+ */
+export function placeNewDevices(map, newIds) {
+  if (newIds.size === 0) return map;
+
+  const settled = [map.router, ...map.devices]
+    .filter((node) => node && !newIds.has(node.id) && hasPosition(node));
+
+  const topOfTray = settled.length
+    ? Math.max(...settled.map((node) => node.position.y)) + TRAY.gapBelow
+    : ROUTER_POSITION.y + GRID.topGap;
+  const leftOfTray = settled.length
+    ? Math.min(...settled.map((node) => node.position.x))
+    : ROUTER_POSITION.x;
+
+  let placed = 0;
+  const devices = map.devices.map((device) => {
+    if (!newIds.has(device.id)) return device;
+
+    const row = Math.floor(placed / TRAY.perRow);
+    const column = placed % TRAY.perRow;
+    placed += 1;
+
+    return {
+      ...device,
+      position: {
+        x: leftOfTray + column * TRAY.columnWidth,
+        y: topOfTray + row * TRAY.rowHeight,
+      },
+    };
+  });
+
+  return { ...map, devices };
+}
