@@ -18,11 +18,21 @@ import 'reactflow/dist/style.css';
 import DeviceNode from './DeviceNode';
 import { mapToFlow } from '../lib/graph';
 
-export default function TopologyCanvas({ map, newIds, onPositionsChange }) {
+export default function TopologyCanvas({
+  map,
+  newIds,
+  selectedId,
+  trace,
+  onSelect,
+  onPositionsChange,
+}) {
   // Registered once: re-creating this object each render remounts every node.
   const nodeTypes = useMemo(() => ({ device: DeviceNode }), []);
 
-  const flow = useMemo(() => mapToFlow(map, newIds), [map, newIds]);
+  const flow = useMemo(
+    () => mapToFlow(map, { newIds, selectedId, trace }),
+    [map, newIds, selectedId, trace],
+  );
   const [nodes, setNodes, onNodesChange] = useNodesState(flow.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(flow.edges);
 
@@ -56,6 +66,8 @@ export default function TopologyCanvas({ map, newIds, onPositionsChange }) {
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onNodeDragStop={handleDragStop}
+      onNodeClick={(_event, node) => onSelect(node.id)}
+      onPaneClick={() => onSelect(null)}
       fitView
       fitViewOptions={{ padding: 0.15 }}
       minZoom={0.1}

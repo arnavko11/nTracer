@@ -16,11 +16,12 @@ Electron + React (React Flow canvas) on the front, Python + nmap on the back.
 | 3 | Scan button wired end to end | ✅ |
 | 4 | Save / load `.nettrace`, auto-load last map | ✅ |
 | 5 | Rescan + diff (offline marking, layout preserved) | ✅ |
-| 6 | Traceroute overlay | ⬜ |
+| 6 | Traceroute overlay | ✅ |
 
 ## Requirements
 
 - `nmap` (`brew install nmap`)
+- `traceroute` (preinstalled on macOS and most Linux distributions)
 - Python 3.11+
 - Node 18+
 
@@ -74,6 +75,29 @@ Flags:
 - `--subnet 192.168.1.0/24` — scan a specific CIDR instead of auto-detecting
 - `--discover-only` — ping sweep only, skip per-device fingerprinting (fast)
 
+## Inspecting a device
+
+Click any node to open the details panel: IP, MAC, vendor, OS guess, open
+ports, scan profile, and when it was first and last seen.
+
+**Trace route** runs [`python/traceroute.py`](python/traceroute.py) against
+that device. The hop-by-hop result (address and average RTT per hop, with
+silent hops shown as `no reply` rather than dropped) appears in the panel, and
+the device's link to the router lights up and animates with a
+`3 hops · 9.4 ms` label.
+
+On a home LAN a trace is a single hop, and that *is* the useful answer — it
+confirms the device is reachable through the router and shows the latency to
+it. Real physical hops can't be drawn on this map because consumer routers
+don't expose the wiring; the overlay highlights the router→device link instead
+of inventing intermediate nodes.
+
+From the CLI:
+
+```bash
+.venv/bin/python python/traceroute.py 192.168.1.42
+```
+
 ## Scan vs. Rescan
 
 **Scan** builds a map from scratch — whatever's on the canvas is replaced.
@@ -126,6 +150,10 @@ React (Scan button)
   ← one JSON object on stdout
   ← { ok: true, map } | { ok: false, error }
 ```
+
+`python/traceroute.py` runs the same way (`traceroute:run`), and both share
+one runner in [`electron/python.js`](electron/python.js) — the two scripts
+have an identical contract, so there's no reason for two spawners.
 
 Save and load work the same way (`map:save`, `map:load`, `map:load-last` in
 [`electron/mapFiles.js`](electron/mapFiles.js)), with native dialogs owned by

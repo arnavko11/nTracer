@@ -2,7 +2,7 @@
  * Bridge between the sandboxed renderer and the main process.
  *
  * Everything the React app can ask the OS to do is listed here explicitly —
- * nothing else from Node reaches the renderer. Milestone 6 adds traceroute.
+ * nothing else from Node reaches the renderer.
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
@@ -14,6 +14,13 @@ contextBridge.exposeInMainWorld('ntracer', {
    * @returns {Promise<{ok: true, map: object} | {ok: false, error: string}>}
    */
   scan: (options) => ipcRenderer.invoke('scan:run', options ?? {}),
+
+  /**
+   * Trace the network path to one device.
+   * @param {string} target IP address
+   * @returns {Promise<{ok: true, trace: object} | {ok: false, error: string}>}
+   */
+  traceroute: (target) => ipcRenderer.invoke('traceroute:run', target),
 
   /**
    * Write a map to disk. Prompts for a location when `path` is null or

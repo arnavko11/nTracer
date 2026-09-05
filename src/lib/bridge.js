@@ -26,6 +26,7 @@ function call(method, args, fallback = { ok: false, error: BRIDGE_UNAVAILABLE })
 
 export const bridge = {
   scan: (...args) => call('scan', args),
+  traceroute: (...args) => call('traceroute', args),
   saveMap: (...args) => call('saveMap', args),
   loadMap: (...args) => call('loadMap', args),
   // Nothing to restore isn't an error worth reporting.

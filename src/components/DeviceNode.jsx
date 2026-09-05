@@ -23,7 +23,8 @@ export default function DeviceNode({ data }) {
   return (
     <div
       className={`device-node ${isRouter ? 'is-router' : ''} `
-        + `${offline ? 'is-offline' : ''} ${data.isNew ? 'is-new' : ''}`}
+        + `${offline ? 'is-offline' : ''} ${data.isNew ? 'is-new' : ''} `
+        + `${data.isSelected ? 'is-selected' : ''}`}
     >
       {/* The router only sends edges downward; devices only receive them. */}
       {!isRouter && <Handle type="target" position={Position.Top} />}

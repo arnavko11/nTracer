@@ -11,6 +11,7 @@ const path = require('node:path');
 const { app, BrowserWindow, ipcMain } = require('electron');
 
 const { runScan } = require('./scanner');
+const { runTraceroute } = require('./traceroute');
 const { saveMap, loadMap, loadLastMap } = require('./mapFiles');
 
 // `npm run dev` sets this; a packaged build never does.
@@ -49,6 +50,14 @@ function registerIpcHandlers() {
   ipcMain.handle('scan:run', async (_event, options) => {
     try {
       return { ok: true, map: await runScan(options) };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('traceroute:run', async (_event, target) => {
+    try {
+      return { ok: true, trace: await runTraceroute(target) };
     } catch (err) {
       return { ok: false, error: err.message };
     }

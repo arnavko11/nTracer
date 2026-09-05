@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Toolbar from './components/Toolbar';
 import StatusBanner from './components/StatusBanner';
 import TopologyCanvas from './components/TopologyCanvas';
+import DeviceDetails from './components/DeviceDetails';
 import { applyPositions, buildMapFromScan } from './lib/graph';
 import { mergeScan, describeSummary } from './lib/diff';
 import { bridge, bridgeAvailable, BRIDGE_UNAVAILABLE } from './lib/bridge';
@@ -33,6 +34,12 @@ export default function App() {
   const [quickScan, setQuickScan] = useState(true);
   // Ids a rescan just discovered — badged on the canvas until the next action.
   const [newIds, setNewIds] = useState(EMPTY_SET);
+  const [selectedId, setSelectedId] = useState(null);
+  // Latest traceroute result, tagged with the device it belongs to so the
+  // canvas can overlay it on the right edge.
+  const [trace, setTrace] = useState(null);
+  const [tracing, setTracing] = useState(false);
+  const [traceError, setTraceError] = useState(null);
   const [notice, setNotice] = useState(
     bridgeAvailable ? null : { tone: 'error', text: BRIDGE_UNAVAILABLE },
   );
@@ -45,6 +52,10 @@ export default function App() {
     setFilePath(path);
     setDirty(isDirty);
     setNewIds(EMPTY_SET);
+    // A trace describes a topology that no longer exists once the map changes.
+    setSelectedId(null);
+    setTrace(null);
+    setTraceError(null);
   }, []);
 
   /**
@@ -76,10 +87,14 @@ export default function App() {
   }, [adoptMap]);
 
   // Persist dragged node positions into the map so a later save keeps them.
+  // applyPositions returns the same map when nothing moved, which is how a
+  // plain click on a node avoids marking the map dirty.
   const handlePositionsChange = useCallback((nodes) => {
-    setMap((current) => applyPositions(current, nodes));
+    const next = applyPositions(map, nodes);
+    if (next === map) return;
+    setMap(next);
     setDirty(true);
-  }, []);
+  }, [map]);
 
   /** Scan from scratch: whatever's on the canvas is replaced. */
   const handleScan = useCallback(() => withScan((scan) => {
@@ -130,7 +145,29 @@ export default function App() {
     setNotice(null);
   }, [adoptMap]);
 
+  const handleTrace = useCallback(async (device) => {
+    setTracing(true);
+    setTraceError(null);
+
+    const result = await bridge.traceroute(device.ip);
+    setTracing(false);
+
+    if (!result.ok) {
+      setTraceError(result.error);
+      setTrace(null);
+      return;
+    }
+    setTrace({ ...result.trace, deviceId: device.id });
+  }, []);
+
+  const handleSelect = useCallback((id) => {
+    setSelectedId(id);
+    setTraceError(null);
+  }, []);
+
   useShortcuts({ onSave: handleSave, onLoad: handleLoad });
+
+  const selectedDevice = findDevice(map, selectedId);
 
   return (
     <div className="app">
@@ -156,11 +193,30 @@ export default function App() {
         <TopologyCanvas
           map={map}
           newIds={newIds}
+          selectedId={selectedId}
+          trace={trace}
+          onSelect={handleSelect}
           onPositionsChange={handlePositionsChange}
+        />
+
+        <DeviceDetails
+          device={selectedDevice}
+          trace={trace}
+          tracing={tracing}
+          traceError={traceError}
+          onTrace={handleTrace}
+          onClose={() => handleSelect(null)}
         />
       </main>
     </div>
   );
+}
+
+/** Look up a device (or the router) by id. */
+function findDevice(map, id) {
+  if (!id) return null;
+  if (map.router?.id === id) return map.router;
+  return map.devices.find((device) => device.id === id) ?? null;
 }
 
 /**
