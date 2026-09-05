@@ -26,11 +26,20 @@ export default function TopologyCanvas({ map, onPositionsChange }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(flow.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(flow.edges);
 
-  // Re-derive the graph whenever the underlying map is replaced (scan, load).
+  // Re-derive the graph whenever the underlying map changes (scan, load, drag).
   useEffect(() => {
     setNodes(flow.nodes);
     setEdges(flow.edges);
   }, [flow, setNodes, setEdges]);
+
+  // Remount React Flow when the *set* of devices changes — a scan or a load —
+  // so its own `fitView` re-runs and frames the new topology. Keying on the
+  // id list means dragging a node doesn't remount (and doesn't yank the
+  // viewport around under the user).
+  const topologyKey = useMemo(
+    () => flow.nodes.map((node) => node.id).sort().join(','),
+    [flow],
+  );
 
   // Only report positions when a drag finishes — reporting on every frame
   // would rewrite the map dozens of times per second.
@@ -40,6 +49,7 @@ export default function TopologyCanvas({ map, onPositionsChange }) {
 
   return (
     <ReactFlow
+      key={topologyKey}
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
@@ -47,7 +57,8 @@ export default function TopologyCanvas({ map, onPositionsChange }) {
       onEdgesChange={onEdgesChange}
       onNodeDragStop={handleDragStop}
       fitView
-      minZoom={0.2}
+      fitViewOptions={{ padding: 0.15 }}
+      minZoom={0.1}
       proOptions={{ hideAttribution: false }}
     >
       <Background gap={24} size={1} color="#22303f" />

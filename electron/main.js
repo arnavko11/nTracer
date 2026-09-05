@@ -8,7 +8,9 @@
  */
 
 const path = require('node:path');
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
+
+const { runScan } = require('./scanner');
 
 // `npm run dev` sets this; a packaged build never does.
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
@@ -37,7 +39,23 @@ function createWindow() {
   }
 }
 
+/**
+ * IPC handlers. Each one mirrors a method exposed in preload.js, and each
+ * returns a plain `{ ok, ... }` object so a failure crosses the bridge as
+ * data rather than as an exception the renderer has to unwrap.
+ */
+function registerIpcHandlers() {
+  ipcMain.handle('scan:run', async (_event, options) => {
+    try {
+      return { ok: true, map: await runScan(options) };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+}
+
 app.whenReady().then(() => {
+  registerIpcHandlers();
   createWindow();
 
   // macOS: clicking the dock icon with no windows open should reopen one.

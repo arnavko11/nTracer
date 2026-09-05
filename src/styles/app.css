@@ -191,3 +191,66 @@ body {
   background: var(--border);
   border: none;
 }
+
+/* ----------------------------------------------------------- scan toggle */
+
+.toolbar-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 4px;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toolbar-toggle input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------- banners */
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.banner-warn {
+  background: #33280f;
+  color: #f0c274;
+}
+
+.banner-error {
+  background: #3a1c1c;
+  color: #f2a1a1;
+}
+
+.banner-info {
+  background: var(--bg-panel);
+  color: var(--text-dim);
+}
+
+.banner-text {
+  flex: 1;
+}
+
+.banner-close {
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.banner-close:hover {
+  opacity: 1;
+}

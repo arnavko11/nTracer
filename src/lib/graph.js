@@ -8,6 +8,16 @@
 
 import { applyStarLayout, starEdges } from './layout';
 
+/**
+ * Turn a raw scan result into a complete .nettrace map: lay the nodes out in
+ * a star and materialise the router→device edges, so the result is ready to
+ * render *and* ready to save.
+ */
+export function buildMapFromScan(scan) {
+  const laid = applyStarLayout(scan);
+  return { ...laid, edges: starEdges(laid) };
+}
+
 /** Build React Flow nodes + edges from a .nettrace map object. */
 export function mapToFlow(map) {
   const laid = applyStarLayout(map);

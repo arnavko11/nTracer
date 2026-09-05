@@ -10,12 +10,19 @@
 /** Router's fixed spot at the top of the canvas. */
 const ROUTER_POSITION = { x: 480, y: 60 };
 
-/** Geometry of the device arc hanging below the router. */
-const ARC = {
-  radius: 320,      // distance from the router
-  spread: 150,      // total angle covered, in degrees
-  rowHeight: 190,   // vertical gap when devices wrap to a second arc
-  perRow: 8,        // devices per arc before wrapping
+/**
+ * Geometry of the device grid below the router.
+ *
+ * An arc looks prettier in a mockup but collides badly once rows wrap — the
+ * ends of one arc sit at nearly the same height as the middle of the next. A
+ * grid can't collide, and since every edge converges on the router anyway,
+ * the star still reads as a star.
+ */
+const GRID = {
+  columnWidth: 230,   // node is 190px wide, so this leaves a 40px gutter
+  rowHeight: 150,
+  topGap: 240,        // vertical distance from the router to the first row
+  perRow: 6,
 };
 
 /** True if a node has a real, user-meaningful position. */
@@ -26,23 +33,19 @@ function hasPosition(node) {
 }
 
 /**
- * Position of the nth device in a star of `total` devices.
- * Devices fan out symmetrically below the router and wrap onto lower arcs
- * once a row is full, so 30 devices stay readable.
+ * Position of the nth device in a grid of `total` devices.
+ * Rows are centred under the router, so a partial last row stays balanced.
  */
-function arcPosition(index, total) {
-  const row = Math.floor(index / ARC.perRow);
-  const inRow = index % ARC.perRow;
-  const rowCount = Math.min(ARC.perRow, total - row * ARC.perRow);
+function gridPosition(index, total) {
+  const row = Math.floor(index / GRID.perRow);
+  const column = index % GRID.perRow;
+  const inThisRow = Math.min(GRID.perRow, total - row * GRID.perRow);
 
-  // Sweep left-to-right across `spread` degrees, centred on straight down.
-  const step = rowCount > 1 ? ARC.spread / (rowCount - 1) : 0;
-  const degrees = 90 - ARC.spread / 2 + inRow * step;
-  const radians = (degrees * Math.PI) / 180;
+  const offsetFromCentre = column - (inThisRow - 1) / 2;
 
   return {
-    x: Math.round(ROUTER_POSITION.x + Math.cos(radians) * ARC.radius),
-    y: Math.round(ROUTER_POSITION.y + Math.sin(radians) * ARC.radius + row * ARC.rowHeight),
+    x: Math.round(ROUTER_POSITION.x + offsetFromCentre * GRID.columnWidth),
+    y: ROUTER_POSITION.y + GRID.topGap + row * GRID.rowHeight,
   };
 }
 
@@ -61,7 +64,7 @@ export function applyStarLayout(map) {
     ...device,
     position: hasPosition(device)
       ? device.position
-      : arcPosition(index, map.devices.length),
+      : gridPosition(index, map.devices.length),
   }));
 
   return { ...map, router, devices };

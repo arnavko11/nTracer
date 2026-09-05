@@ -1,12 +1,19 @@
 /**
- * Top bar: app identity plus the map-level actions.
+ * Top bar: app identity, the map-level actions, and a summary of the map.
  *
- * The action buttons are wired up in later milestones (3: Scan, 4: Save/Load,
- * 5: Rescan); until then they're visibly disabled rather than absent, so the
- * layout doesn't shift when they come alive.
+ * Save/Load land in milestone 4 and Rescan in milestone 5; those buttons stay
+ * visibly disabled until then so the layout doesn't shift when they come
+ * alive.
  */
 
-export default function Toolbar({ map }) {
+export default function Toolbar({
+  map,
+  scanning,
+  elapsed,
+  quickScan,
+  onQuickScanChange,
+  onScan,
+}) {
   const deviceCount = map.devices.length;
   const offlineCount = map.devices.filter((d) => d.status === 'offline').length;
 
@@ -17,10 +24,25 @@ export default function Toolbar({ map }) {
       </div>
 
       <div className="toolbar-actions">
-        <button type="button" disabled title="Coming in milestone 3">Scan</button>
+        <button type="button" onClick={onScan} disabled={scanning}>
+          {scanning ? `Scanning… ${formatElapsed(elapsed)}` : 'Scan'}
+        </button>
         <button type="button" disabled title="Coming in milestone 5">Rescan</button>
         <button type="button" disabled title="Coming in milestone 4">Save</button>
         <button type="button" disabled title="Coming in milestone 4">Load</button>
+
+        <label
+          className="toolbar-toggle"
+          title="Ping sweep only — finds devices without fingerprinting them. Seconds instead of minutes."
+        >
+          <input
+            type="checkbox"
+            checked={quickScan}
+            disabled={scanning}
+            onChange={(event) => onQuickScanChange(event.target.checked)}
+          />
+          Quick scan
+        </label>
       </div>
 
       <div className="toolbar-status">
@@ -33,6 +55,12 @@ export default function Toolbar({ map }) {
       </div>
     </header>
   );
+}
+
+/** Seconds → "1:04", so a long scan visibly makes progress. */
+function formatElapsed(seconds) {
+  const mins = Math.floor(seconds / 60);
+  return `${mins}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
 /** ISO-8601 → something readable, without pulling in a date library. */

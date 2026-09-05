@@ -13,7 +13,7 @@ Electron + React (React Flow canvas) on the front, Python + nmap on the back.
 | --- | --- | --- |
 | 1 | `python/scan.py` — nmap discovery, JSON on stdout | ✅ |
 | 2 | Electron + React shell, static topology canvas | ✅ |
-| 3 | Scan button wired end to end | ⬜ |
+| 3 | Scan button wired end to end | ✅ |
 | 4 | Save / load `.nettrace`, auto-load last map | ⬜ |
 | 5 | Rescan + diff (offline marking, layout preserved) | ⬜ |
 | 6 | Traceroute overlay | ⬜ |
@@ -42,9 +42,21 @@ Starts Vite with hot reload and opens the Electron window against it. For a
 production-style run instead: `npm start` (builds to `dist/`, then launches
 Electron off the built files).
 
-Milestone 2 renders the hardcoded map in
-[`saved-maps/sample.nettrace`](saved-maps/sample.nettrace) — the toolbar
-buttons are deliberately disabled until the milestones that wire them up.
+The app opens on the sample map in
+[`saved-maps/sample.nettrace`](saved-maps/sample.nettrace) so there's
+something to look at; hit **Scan** to replace it with your real network.
+Save / Load / Rescan stay disabled until their milestones land.
+
+**Quick scan** (on by default) runs the ping sweep only — seconds instead of
+minutes. Untick it for full OS and service fingerprinting.
+
+**Run the app with `sudo` if you want a complete map.** Same reason as the CLI
+above: without root, nmap can't ARP. nTracer shows a warning banner when a
+scan comes back unprivileged, so you won't mistake a partial result for an
+empty network.
+
+nTracer looks for Python at `.venv/bin/python`, falling back to `python3`.
+Override with the `NTRACER_PYTHON` environment variable.
 
 ## Running a scan
 
@@ -61,6 +73,25 @@ Flags:
 
 - `--subnet 192.168.1.0/24` — scan a specific CIDR instead of auto-detecting
 - `--discover-only` — ping sweep only, skip per-device fingerprinting (fast)
+
+## How the pieces talk
+
+The renderer is fully sandboxed — no Node, no filesystem. Everything
+privileged goes over IPC:
+
+```
+React (Scan button)
+  → window.ntracer.scan()            electron/preload.js  (contextBridge)
+  → ipcMain.handle('scan:run')       electron/main.js
+  → spawn python/scan.py             electron/scanner.js
+  ← one JSON object on stdout
+  ← { ok: true, map } | { ok: false, error }
+```
+
+Failures cross the bridge as data, never as exceptions, so the renderer only
+ever has two cases to handle. `scan.py` reports its own errors as JSON too, so
+unparseable stdout means something went wrong before Python got that far —
+usually a missing `nmap`.
 
 ## Layout
 
