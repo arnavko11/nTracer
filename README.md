@@ -12,7 +12,7 @@ Electron + React (React Flow canvas) on the front, Python + nmap on the back.
 | Milestone | What it adds | Done |
 | --- | --- | --- |
 | 1 | `python/scan.py` — nmap discovery, JSON on stdout | ✅ |
-| 2 | Electron + React shell, static topology canvas | ⬜ |
+| 2 | Electron + React shell, static topology canvas | ✅ |
 | 3 | Scan button wired end to end | ⬜ |
 | 4 | Save / load `.nettrace`, auto-load last map | ⬜ |
 | 5 | Rescan + diff (offline marking, layout preserved) | ⬜ |
@@ -22,14 +22,29 @@ Electron + React (React Flow canvas) on the front, Python + nmap on the back.
 
 - `nmap` (`brew install nmap`)
 - Python 3.11+
-- Node 18+ (from milestone 2 on)
+- Node 18+
 
 ## Setup
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r python/requirements.txt
+npm install
 ```
+
+## Running the app
+
+```bash
+npm run dev
+```
+
+Starts Vite with hot reload and opens the Electron window against it. For a
+production-style run instead: `npm start` (builds to `dist/`, then launches
+Electron off the built files).
+
+Milestone 2 renders the hardcoded map in
+[`saved-maps/sample.nettrace`](saved-maps/sample.nettrace) — the toolbar
+buttons are deliberately disabled until the milestones that wire them up.
 
 ## Running a scan
 
@@ -46,6 +61,13 @@ Flags:
 
 - `--subnet 192.168.1.0/24` — scan a specific CIDR instead of auto-detecting
 - `--discover-only` — ping sweep only, skip per-device fingerprinting (fast)
+
+## Layout
+
+Positions are only ever *filled in*, never overwritten: `applyStarLayout` in
+[`src/lib/layout.js`](src/lib/layout.js) assigns an arc position to nodes that
+don't have one and leaves everything else alone, so dragging a node — or
+loading a saved map — always wins over the automatic layout.
 
 ## Scan pipeline
 

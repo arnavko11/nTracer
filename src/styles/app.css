@@ -1,0 +1,193 @@
+/* nTracer renderer styles. Dark, network-tool flavoured; plain CSS by design. */
+
+:root {
+  --bg: #0f1720;
+  --bg-panel: #16202b;
+  --bg-node: #1d2937;
+  --border: #2b3a4a;
+  --text: #e6edf3;
+  --text-dim: #8ba0b4;
+  --accent: #3d7eff;
+  --warn: #e6a13c;
+  --offline: #6b7885;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  /* The canvas owns all scrolling. */
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ---------------------------------------------------------------- toolbar */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 16px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.brand-mark {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar-actions button {
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-node);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.toolbar-actions button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.toolbar-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toolbar-status {
+  display: flex;
+  gap: 16px;
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+/* ----------------------------------------------------------------- canvas */
+
+.canvas-area {
+  flex: 1;
+  min-height: 0;   /* lets the flex child actually shrink, so the canvas fits */
+}
+
+.react-flow__attribution {
+  background: transparent;
+  color: var(--text-dim);
+}
+
+/* Offline devices get a dimmed, dashed link to the router. */
+.edge-offline .react-flow__edge-path {
+  stroke: var(--offline);
+  stroke-dasharray: 5 4;
+}
+
+/* ------------------------------------------------------------ device node */
+
+.device-node {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 190px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-node);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.device-node.is-router {
+  border-color: var(--accent);
+  background: #1b2a44;
+}
+
+.device-node.is-offline {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.device-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.device-body {
+  min-width: 0;   /* required for the ellipsis on .device-label to kick in */
+}
+
+.device-label {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-ip {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.device-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.tag {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #24344a;
+  color: var(--text-dim);
+  font-size: 10px;
+}
+
+.tag-fragile {
+  background: #3a2e18;
+  color: var(--warn);
+}
+
+.tag-offline {
+  background: #2a2f36;
+  color: var(--offline);
+}
+
+.device-ports {
+  margin-top: 4px;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* React Flow's connection dots aren't interactive here — the topology is
+   generated, not hand-drawn — so keep them small and unobtrusive. */
+.react-flow__handle {
+  width: 6px;
+  height: 6px;
+  background: var(--border);
+  border: none;
+}
